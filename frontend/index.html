@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Pulse - Real-Time Network AI & Traffic Operations Center</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation & Operations Control Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="logo-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+      <div class="brand-text">
+        <span class="brand-title">TRAFFIC PULSE</span>
+        <span class="brand-subtitle">AI Traffic Operations Center & Digital Twin</span>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Ticker -->
+    <div class="network-ticker">
+      <div class="ticker-item">
+        <span class="ticker-label">NETWORK SPEED</span>
+        <span id="ticker-avg-speed" class="ticker-value">-- km/h</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">CRITICAL BOTTLENECK</span>
+        <span id="ticker-critical-count" class="ticker-value badge-critical">--</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">ACTIVE INCIDENTS</span>
+        <span id="ticker-incident-count" class="ticker-value badge-amber">--</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-label">STREAM STATUS</span>
+        <span id="ticker-stream-badge" class="ticker-value status-live"><i class="fa-solid fa-circle pulse-dot"></i> LIVE</span>
+      </div>
+    </div>
+
+    <!-- Simulation Time & Playback Controls -->
+    <div class="playback-controls">
+      <div class="clock-display">
+        <i class="fa-regular fa-clock"></i>
+        <span id="sim-clock">2024-01-01 16:00:00</span>
+      </div>
+      <div class="btn-group">
+        <button id="btn-play-pause" class="btn btn-sm btn-outline" title="Play/Pause Stream">
+          <i class="fa-solid fa-play"></i>
+        </button>
+        <button id="btn-step" class="btn btn-sm btn-outline" title="Step +5 min">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+        <select id="select-speed" class="select-sm" title="Replay Speed">
+          <option value="1.0">1x</option>
+          <option value="3.0">3x</option>
+          <option value="10.0">10x</option>
+        </select>
+        <button id="btn-jump-incident" class="btn btn-sm btn-accent" title="Jump to Major Incident (16:45)">
+          <i class="fa-solid fa-triangle-exclamation"></i> Jump to Incident
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- View Switcher Tabs -->
+  <nav class="view-tabs">
+    <button class="tab-btn active" data-view="congestion-pulse">
+      <i class="fa-solid fa-chart-simple"></i> 1. Congestion Pulse <span class="badge-tag">HOME</span>
+    </button>
+    <button class="tab-btn" data-view="corridor-timeline">
+      <i class="fa-solid fa-timeline"></i> 2. Corridor Timeline Strip <span class="badge-tag">KILLER VIEW</span>
+    </button>
+    <button class="tab-btn" data-view="incident-panel">
+      <i class="fa-solid fa-shield-halved"></i> 3. Incident Evidence Panel <span id="tab-inc-count" class="tab-badge">0</span>
+    </button>
+    <button class="tab-btn" data-view="advisory-drawer">
+      <i class="fa-solid fa-compass"></i> 4. Operational Advisories <span id="tab-adv-count" class="tab-badge">0</span>
+    </button>
+    <button class="tab-btn" data-view="simulator">
+      <i class="fa-solid fa-sliders"></i> 5. Before/After Simulator
+    </button>
+    <button class="tab-btn" data-view="map-layer">
+      <i class="fa-solid fa-map-location-dot"></i> 6. Network Map Drill-Down
+    </button>
+  </nav>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+
+    <!-- VIEW 1: Congestion Pulse (Home View) -->
+    <section id="view-congestion-pulse" class="view-section active">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-bolt text-crimson"></i> Congestion Pulse: Critical Bottleneck Ranking</h2>
+          <p class="section-desc">Real-time prioritization of top network bottlenecks ranked by severity score, speed degradation vs. baseline, shockwave trends, and multi-horizon forecasts. Operators act here.</p>
+        </div>
+        <div class="header-actions">
+          <span class="refresh-note"><i class="fa-solid fa-arrows-rotate"></i> Updated every 300s window</span>
+        </div>
+      </div>
+
+      <!-- Pulse Table -->
+      <div class="table-container card">
+        <table class="pulse-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">RANK</th>
+              <th style="width: 140px;">LINK & CORRIDOR</th>
+              <th style="width: 110px;">CLASS</th>
+              <th style="width: 180px;">SEVERITY SCORE</th>
+              <th style="width: 140px;">SPEED vs BASELINE</th>
+              <th style="width: 90px;">TREND</th>
+              <th style="width: 260px;">FORECAST (+15 / +30 / +45 / +60m)</th>
+              <th style="width: 100px;">CONFIDENCE</th>
+              <th style="width: 130px; text-align: right;">QUICK ACTION</th>
+            </tr>
+          </thead>
+          <tbody id="pulse-tbody">
+            <!-- Rendered dynamically by congestion_pulse.js -->
+            <tr><td colspan="9" class="text-center py-4 text-muted">Loading network telemetry stream...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VIEW 2: Corridor Timeline Strip (Space-Time Diagram) -->
+    <section id="view-corridor-timeline" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-chart-area text-amber"></i> Corridor Timeline Strip: Space-Time Diagram</h2>
+          <p class="section-desc">Haut-Trajectoire contour: X-axis = distance along corridor, Y-axis = time (last hour → now → +60 min forecast). Shockwaves, deceleration fronts, and queue propagation visually intuitive for traffic engineers.</p>
+        </div>
+        <div class="corridor-selector-box">
+          <label for="corridor-select"><i class="fa-solid fa-route"></i> Corridor:</label>
+          <select id="corridor-select" class="select-md">
+            <option value="EW-TRU-EB">East-West Trunk (Eastbound)</option>
+            <option value="EW-TRU-WB">East-West Trunk (Westbound)</option>
+            <option value="EW-PRI-EB">East-West Primary (Eastbound)</option>
+            <option value="EW-PRI-WB">East-West Primary (Westbound)</option>
+            <option value="NS-TRU-NB">North-South Trunk (Northbound)</option>
+            <option value="NS-TRU-SB">North-South Trunk (Southbound)</option>
+            <option value="NS-PRI-NB">North-South Primary (Northbound)</option>
+            <option value="NS-PRI-SB">North-South Primary (Southbound)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Diagram Canvas Container -->
+      <div class="corridor-diagram-wrapper card">
+        <div class="diagram-toolbar">
+          <div class="legend-group">
+            <span class="legend-title">SPEED SPECTRUM:</span>
+            <span class="legend-chip color-los-f">Jam / Stop-and-Go (&lt; 15 km/h)</span>
+            <span class="legend-chip color-los-d">Congested (15 - 35 km/h)</span>
+            <span class="legend-chip color-los-b">Synchronized (35 - 55 km/h)</span>
+            <span class="legend-chip color-los-a">Free Flow (&gt; 55 km/h)</span>
+          </div>
+          <div class="diagram-stats" id="corridor-summary-stats">
+            Length: 2,231m | 5 Links
+          </div>
+        </div>
+
+        <div class="space-time-container">
+          <canvas id="space-time-canvas" width="1050" height="520"></canvas>
+          <div id="diagram-tooltip" class="diagram-tooltip"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: Incident Evidence Panel -->
+    <section id="view-incident-panel" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-triangle-exclamation text-crimson"></i> Incident Operations & Multi-Modal Evidence</h2>
+          <p class="section-desc">Automated incident classification fusing telemetry anomalies, weather risk, roadworks permits, and spatial gradients. Low-confidence cases specifically labeled 'Abnormal Behavior'.</p>
+        </div>
+        <div class="header-actions">
+          <span id="incident-counter-badge" class="badge-amber">0 Active Suspected Incidents</span>
+        </div>
+      </div>
+
+      <div class="incidents-grid" id="incidents-container">
+        <!-- Rendered dynamically by incident_panel.js -->
+        <div class="card empty-card">No severe incidents or unclassified anomalies detected in this interval.</div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: Operational Advisory Drawer -->
+    <section id="view-advisory-drawer" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-compass text-teal"></i> Operational Advisories: Diversions, Signals & Metering</h2>
+          <p class="section-desc">Dynamic alternate routing (with spare capacity headroom verification), Webster signal retiming, and ramp metering. Every suggestion includes attached evidence and human-in-the-loop approvals.</p>
+        </div>
+        <div class="header-actions">
+          <span id="advisories-pending-count" class="badge-teal">0 Pending Approvals</span>
+        </div>
+      </div>
+
+      <div class="advisories-grid" id="advisories-container">
+        <!-- Rendered dynamically by advisory_drawer.js -->
+        <div class="card empty-card">No active operational intervention required at this interval.</div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: Before/After Infrastructure Simulator -->
+    <section id="view-simulator" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-code-compare text-blue"></i> Before / After Infrastructure Simulator</h2>
+          <p class="section-desc">Recurring bottleneck clustering from 90 days of traffic telemetry. Evaluate proposed engineering modifications (travel lane additions, turn pockets, adaptive coordination) with dynamic 24-hour replay.</p>
+        </div>
+        <div class="project-selector-box">
+          <label for="project-select"><i class="fa-solid fa-folder-open"></i> Proposal:</label>
+          <select id="project-select" class="select-md">
+            <option value="PROJ-LANE-EW-TRU">East-West Trunk Lane Expansion (+1 Travel Lane)</option>
+            <option value="PROJ-FLARE-N0001">Junction N0001 Turn-Pocket Flare & Intersection Widening</option>
+            <option value="PROJ-ATSAC-EW-PRI">EW-PRI Adaptive Signal Coordination Corridor (Green Wave)</option>
+            <option value="PROJ-FLYOVER-NS-TRU">North-South Trunk Elevated Bypass Flyover</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Project Metadata & Executive ROI Summary -->
+      <div class="card project-summary-card">
+        <div class="proj-header-row">
+          <div>
+            <h3 id="proj-title" class="proj-title">Loading proposal...</h3>
+            <p id="proj-desc" class="proj-desc"></p>
+          </div>
+          <div class="proj-meta-badges">
+            <span id="proj-cost" class="badge-meta"><i class="fa-solid fa-coins"></i> $4.8M</span>
+            <span id="proj-duration" class="badge-meta"><i class="fa-solid fa-calendar-day"></i> 4 months</span>
+            <span id="proj-economic" class="badge-meta badge-green"><i class="fa-solid fa-arrow-trend-up"></i> $0.64M / yr Benefit</span>
+          </div>
+        </div>
+
+        <!-- Comparative Metrics Grid -->
+        <div class="metrics-kpi-grid">
+          <div class="kpi-box">
+            <span class="kpi-label">AVERAGE SPEED</span>
+            <div class="kpi-val-row">
+              <span id="kpi-speed-before" class="kpi-before">--</span>
+              <i class="fa-solid fa-arrow-right kpi-arrow"></i>
+              <span id="kpi-speed-after" class="kpi-after">--</span>
+            </div>
+            <span id="kpi-speed-delta" class="kpi-gain">+0% Gain</span>
+          </div>
+
+          <div class="kpi-box">
+            <span class="kpi-label">PEAK QUEUE SPILLBACK</span>
+            <div class="kpi-val-row">
+              <span id="kpi-queue-before" class="kpi-before">--</span>
+              <i class="fa-solid fa-arrow-right kpi-arrow"></i>
+              <span id="kpi-queue-after" class="kpi-after">--</span>
+            </div>
+            <span id="kpi-queue-delta" class="kpi-gain">-0% Reduction</span>
+          </div>
+
+          <div class="kpi-box">
+            <span class="kpi-label">DAILY DELAY HOURS SAVED</span>
+            <div class="kpi-val-row">
+              <span id="kpi-delay-saved" class="kpi-after">-- hrs / day</span>
+            </div>
+            <span class="kpi-gain text-muted">Direct commuter benefit</span>
+          </div>
+
+          <div class="kpi-box">
+            <span class="kpi-label">LEVEL OF SERVICE SHIFT</span>
+            <div class="kpi-val-row">
+              <span id="kpi-los-shift" class="kpi-after">LOS F → LOS B</span>
+            </div>
+            <span class="kpi-gain text-green">Chokepoint eliminated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split View & 24h Replay Slider -->
+      <div class="card split-simulator-card">
+        <div class="simulator-scrubber-bar">
+          <div class="scrubber-label">
+            <i class="fa-solid fa-clock-rotate-left"></i> 24-HOUR REPLAY TIME:
+            <span id="scrubber-time-val" class="time-callout">08:30 (AM Peak)</span>
+          </div>
+          <input type="range" id="time-slider" min="0" max="143" value="51" class="slider-full">
+          <div class="slider-markers">
+            <span>00:00 (Night)</span>
+            <span>08:30 (AM Peak)</span>
+            <span>13:00 (Midday)</span>
+            <span>17:30 (PM Peak)</span>
+            <span>23:50 (Late)</span>
+          </div>
+        </div>
+
+        <!-- Split View Side-by-Side Comparison -->
+        <div class="split-view-container">
+          <!-- Left: Current Baseline -->
+          <div class="split-half baseline-half">
+            <div class="split-title-bar baseline-bar">
+              <span><i class="fa-solid fa-circle text-crimson"></i> CURRENT BOTTLENECK (BASELINE)</span>
+              <span id="split-base-los" class="split-los-pill los-f">LOS F</span>
+            </div>
+            <div class="split-metrics-body">
+              <div class="split-metric-row">
+                <span>Travel Speed:</span>
+                <strong id="split-base-speed">-- km/h</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Volume / Capacity:</span>
+                <strong id="split-base-vc">--</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Standing Queue:</span>
+                <strong id="split-base-queue" class="text-crimson">-- veh</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Segment Travel Time:</span>
+                <strong id="split-base-tt">-- s</strong>
+              </div>
+              <div class="visual-queue-bar">
+                <div id="split-base-queue-bar" class="queue-fill-base" style="width: 80%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Simulated Post-Modification -->
+          <div class="split-half post-half">
+            <div class="split-title-bar post-bar">
+              <span><i class="fa-solid fa-circle text-green"></i> SIMULATED POST-MODIFICATION</span>
+              <span id="split-post-los" class="split-los-pill los-b">LOS B</span>
+            </div>
+            <div class="split-metrics-body">
+              <div class="split-metric-row">
+                <span>Travel Speed:</span>
+                <strong id="split-post-speed" class="text-green">-- km/h</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Volume / Capacity:</span>
+                <strong id="split-post-vc">--</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Standing Queue:</span>
+                <strong id="split-post-queue" class="text-green">-- veh</strong>
+              </div>
+              <div class="split-metric-row">
+                <span>Segment Travel Time:</span>
+                <strong id="split-post-tt">-- s</strong>
+              </div>
+              <div class="visual-queue-bar">
+                <div id="split-post-queue-bar" class="queue-fill-post" style="width: 15%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: Secondary Map Drill-Down Layer -->
+    <section id="view-map-layer" class="view-section">
+      <div class="view-header">
+        <div>
+          <h2><i class="fa-solid fa-earth-americas text-blue"></i> Road Network Map (Secondary Drill-Down)</h2>
+          <p class="section-desc">Geography is context, not the primary UI. Click any link to open full real-time telemetry, raw detector readings, and physical attributes.</p>
+        </div>
+        <div class="header-actions">
+          <button id="btn-map-fit" class="btn btn-sm btn-outline"><i class="fa-solid fa-expand"></i> Reset View</button>
+        </div>
+      </div>
+
+      <div class="map-layout-grid">
+        <!-- Interactive Leaflet Map -->
+        <div class="map-canvas-container card">
+          <div id="network-map"></div>
+        </div>
+
+        <!-- Link Telemetry Inspector Side Panel -->
+        <div class="link-inspector-panel card" id="link-inspector">
+          <div class="inspector-header">
+            <div>
+              <span class="inspector-badge" id="insp-lid">L00000</span>
+              <h3 id="insp-name" class="insp-title">Select a Link</h3>
+            </div>
+            <span id="insp-los" class="split-los-pill los-a">LOS A</span>
+          </div>
+
+          <div class="inspector-body" id="insp-body">
+            <p class="text-muted text-center py-4">Click any link on the map or select from the Congestion Pulse list to inspect detailed telemetry.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/congestion_pulse.js"></script>
+  <script src="/js/corridor_strip.js"></script>
+  <script src="/js/incident_panel.js"></script>
+  <script src="/js/advisory_drawer.js"></script>
+  <script src="/js/simulator.js"></script>
+  <script src="/js/secondary_map.js"></script>
+</body>
+</html>

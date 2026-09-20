@@ -1,0 +1,109 @@
+{
+  "clusters": [
+    {
+      "cluster_id": "CLUST-1",
+      "name": "CBD Inbound Commuter Arterials (AM Peak)",
+      "typology": "Commuter Choke",
+      "description": "High directional peak demand entering core business district between 07:30 and 09:30, overwhelming intersection entry approaches.",
+      "representative_links": [
+        "L00003",
+        "L00008",
+        "L00004"
+      ]
+    },
+    {
+      "cluster_id": "CLUST-2",
+      "name": "Outbound Regional Trunk Merge (PM Peak)",
+      "typology": "Freeway Merge Choke",
+      "description": "Heavy evening commuter egress between 16:30 and 18:30 causing downstream merge bottlenecks and queue spillback.",
+      "representative_links": [
+        "L00054",
+        "L00057",
+        "L00060"
+      ]
+    },
+    {
+      "cluster_id": "CLUST-3",
+      "name": "Signal-Constrained Dense Junction Approaches",
+      "typology": "Intersection Throat",
+      "description": "Severe capacity bottleneck caused by shared turning movements and split cycles at multi-phase signalized intersections.",
+      "representative_links": [
+        "L00003",
+        "L00008",
+        "L00054"
+      ]
+    },
+    {
+      "cluster_id": "CLUST-4",
+      "name": "Geometric Capacity & Lane Discontinuity",
+      "typology": "Lane-Drop Discontinuity",
+      "description": "Recurring shockwave formation where 3-lane trunk segments neck down into 2-lane or 1-lane configurations.",
+      "representative_links": []
+    }
+  ],
+  "projects": {
+    "PROJ-LANE-EW-TRU": {
+      "project_id": "PROJ-LANE-EW-TRU",
+      "title": "East-West Trunk Lane Expansion (+1 Travel Lane)",
+      "target_link_id": "L00004",
+      "corridor_name": "EW-TRU-00004",
+      "cluster_id": "CLUST-1",
+      "modification_type": "lane_addition",
+      "description": "Add a 4th dedicated through lane along EW-TRU-00004 (N0002 -> N0003), expanding capacity from 2,549 to 4,500 vph.",
+      "cost_estimate": "$4.8M",
+      "construction_duration": "4 months",
+      "modifications": {
+        "lanes_delta": 1,
+        "capacity_delta_vph": 1950,
+        "free_flow_speed_delta": 3.0
+      }
+    },
+    "PROJ-FLARE-N0001": {
+      "project_id": "PROJ-FLARE-N0001",
+      "title": "Junction N0001 Turn-Pocket Flare & Intersection Widening",
+      "target_link_id": "L00000",
+      "corridor_name": "EW-TRU-00000",
+      "cluster_id": "CLUST-3",
+      "modification_type": "turn_pocket_flare",
+      "description": "Construct 150m dedicated left-turn bay approaching N0001, eliminating through-traffic obstruction and increasing green ratio from 0.54 to 0.72.",
+      "cost_estimate": "$1.9M",
+      "construction_duration": "2 months",
+      "modifications": {
+        "lanes_delta": 1,
+        "capacity_delta_vph": 1200,
+        "green_ratio_delta": 0.18
+      }
+    },
+    "PROJ-ATSAC-EW-PRI": {
+      "project_id": "PROJ-ATSAC-EW-PRI",
+      "title": "EW-PRI Adaptive Signal Coordination Corridor (Green Wave)",
+      "target_link_id": "L00024",
+      "corridor_name": "EW-PRI-00024",
+      "cluster_id": "CLUST-1",
+      "modification_type": "signal_coordination",
+      "description": "Deploy dynamic corridor signal coordination with adaptive cycle splits across N0300 through N0305, achieving uninterrupted platoon flow.",
+      "cost_estimate": "$850k",
+      "construction_duration": "3 weeks",
+      "modifications": {
+        "capacity_delta_vph": 800,
+        "progression_factor": 0.4
+      }
+    },
+    "PROJ-FLYOVER-NS-TRU": {
+      "project_id": "PROJ-FLYOVER-NS-TRU",
+      "title": "North-South Trunk Elevated Bypass Flyover",
+      "target_link_id": "L00053",
+      "corridor_name": "NS-TRU-00053",
+      "cluster_id": "CLUST-2",
+      "modification_type": "grade_separation",
+      "description": "Construct 2-lane grade-separated flyover over N0100 intersection, completely removing through traffic from surface signal conflicts.",
+      "cost_estimate": "$12.4M",
+      "construction_duration": "9 months",
+      "modifications": {
+        "lanes_delta": 2,
+        "capacity_delta_vph": 3600,
+        "free_flow_speed_delta": 10.0
+      }
+    }
+  }
+}
